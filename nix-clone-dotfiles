@@ -38,7 +38,7 @@ fi
 gpg --import "$PRIVATE_KEY" || { echo '\''Failed to import private key'\''; exit 1; }
 
 # Add authentication subkey to SSH agent
-KEY_GRIP=$(gpg --with-keygrip --list-secret-keys | grep keygrip | head -n1 | awk '\''{print $3}'\'')
+KEY_GRIP=$(gpg --with-keygrip --list-secret-keys | grep -A1 '\[AR\]' | grep Keygrip | awk '{print $3}')
 echo "$KEY_GRIP" > "$GNUPGHOME/sshcontrol"
 
 # Clean up private key
