@@ -1,30 +1,46 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-cd ~
+nix-shell -p git git-crypt gnupg pinentry-curses vim --run '
+# Ensure we're in home directory
+cd \"$HOME\" || exit 1
 
-nix-shell -p git git-crypt gnupg pinentry-curses vim --run "
+# Set up GPG environment
+export GPG_TTY=\$(tty)
+export SSH_AUTH_SOCK=\$(gpgconf --list-dirs agent-ssh-socket)
+export GNUPGHOME=\"\$HOME/.gnupg\"
 
-export GPG_TTY=$(tty)
-export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-export GNUPGHOME="$(pwd)/.gnupg"
-mkdir -p $GNUPGHOME
-chmod 700 $GNUPGHOME
+# Set up GPG directory securely
+if [[ ! -d \"\$GNUPGHOME\" ]]; then
+    mkdir -p \"\$GNUPGHOME\"
+    chmod 700 \"\$GNUPGHOME\"
+fi
 
-# Configure gpg-agent to use pinentry
-cat > $GNUPGHOME/gpg-agent.conf << EOF
+# Configure gpg-agent
+cat > \"\$GNUPGHOME/gpg-agent.conf\" << 'EOF'
 pinentry-program pinentry-curses
 EOF
 
-# Start gpg-agent if not running
-gpg-connect-agent /bye
+# Start gpg-agent
+gpg-connect-agent /bye || { echo 'Failed to start gpg-agent'; exit 1; }
 
-vim ./private_key
-gpg --import ./private_key
-rm ./private_key
+# Handle private key
+PRIVATE_KEY=\"\$HOME/private_key\"
+vim \"\$PRIVATE_KEY\"
+if [[ ! -f \"\$PRIVATE_KEY\" ]]; then
+    echo 'Private key file not created' >&2
+    exit 1
+fi
 
-git clone git@github.com:S1M1S/dotfiles.git
+# Import and securely remove private key
+gpg --import \"\$PRIVATE_KEY\" || { echo 'Failed to import private key'; exit 1; }
+shred -u \"\$PRIVATE_KEY\" || rm -P \"\$PRIVATE_KEY\" || rm \"\$PRIVATE_KEY\"
 
-cd dotfiles
-
-git-crypt unlock
-"
+# Clone and unlock repository
+REPO_DIR=\"\$HOME/dotfiles\"
+if [[ ! -d \"\$REPO_DIR\" ]]; then
+    git clone git@github.com:S1M1S/dotfiles.git \"\$REPO_DIR\" || { echo 'Failed to clone repository'; exit 1; }
+fi
+cd \"\$REPO_DIR\" || exit 1
+git-crypt unlock || { echo 'Failed to unlock repository'; exit 1; }
+'
