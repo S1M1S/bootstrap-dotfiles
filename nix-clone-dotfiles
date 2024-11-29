@@ -2,10 +2,21 @@
 
 cd ~
 
-nix-shell -p git git-crypt gnupg vim --run "
+nix-shell -p git git-crypt gnupg pinentry-curses vim --run "
 
 export GPG_TTY=$(tty)
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+export GNUPGHOME="$(pwd)/.gnupg"
+mkdir -p $GNUPGHOME
+chmod 700 $GNUPGHOME
+
+# Configure gpg-agent to use pinentry
+cat > $GNUPGHOME/gpg-agent.conf << EOF
+pinentry-program pinentry-curses
+EOF
+
+# Start gpg-agent if not running
+gpg-connect-agent /bye
 
 vim ./private_key
 gpg --import ./private_key
