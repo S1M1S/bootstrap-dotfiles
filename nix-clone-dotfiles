@@ -18,10 +18,13 @@ fi
 # Configure gpg-agent
 cat > "$GNUPGHOME/gpg-agent.conf" << '\''EOF'\''
 pinentry-program pinentry-curses
+enable-ssh-support
 EOF
 
-# Start gpg-agent
-gpg-connect-agent /bye || { echo '\''Failed to start gpg-agent'\''; exit 1; }
+# Start gpg-agent and wait for it
+gpgconf --kill gpg-agent
+gpg-agent --daemon
+gpg-connect-agent updatestartuptty /bye || { echo '\''Failed to start gpg-agent'\''; exit 1; }
 
 # Handle private key
 PRIVATE_KEY="$HOME/private_key"
@@ -33,7 +36,16 @@ fi
 
 # Import and securely remove private key
 gpg --import "$PRIVATE_KEY" || { echo '\''Failed to import private key'\''; exit 1; }
+
+# Add authentication subkey to SSH agent
+KEY_GRIP=$(gpg --with-keygrip --list-secret-keys | grep keygrip | head -n1 | awk '\''{print $3}'\'')
+echo "$KEY_GRIP" > "$GNUPGHOME/sshcontrol"
+
+# Clean up private key
 shred -u "$PRIVATE_KEY" || rm -P "$PRIVATE_KEY" || rm "$PRIVATE_KEY"
+
+# Ensure SSH agent has the key
+ssh-add -l || { echo '\''SSH key not properly added'\''; exit 1; }
 
 # Clone and unlock repository
 REPO_DIR="$HOME/dotfiles"
