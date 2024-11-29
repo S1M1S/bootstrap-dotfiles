@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 nix-shell -p git git-crypt gnupg pinentry-curses vim --run '
-# Ensure we're in home directory
+# Ensure we are in home directory
 cd "$HOME" || exit 1
 
 # Set up GPG environment
