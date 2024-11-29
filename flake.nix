@@ -19,7 +19,7 @@
         ];
 
         platformDeps = if pkgs.stdenv.isDarwin
-          then []
+          then [ pkgs.pinentry-curses ]
           else [ pkgs.pinentry-curses ];
 
       in {
