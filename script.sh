@@ -49,6 +49,9 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+# Main execution starts here
+log "Starting setup..."
+
 # Ensure required variables
 REPO_URL=${REPO_URL:-"git@github.com:S1M1S/dotfiles.git"}
 PRIVATE_KEY_TMP=${PRIVATE_KEY:-"$HOME/private_key"}
@@ -56,32 +59,32 @@ GNUPGHOME=${GNUPGHOME:-"$HOME/.gnupg"}
 REPO_DIR="$HOME/dotfiles"
 
 # Set up GPG environment
-debug "Setting up GPG environment"
+log "Setting up GPG environment"
 export GPG_TTY=$(tty)
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 
 # Create and secure GNUPGHOME
 if [[ ! -d "$GNUPGHOME" ]]; then
-    debug "Creating $GNUPGHOME"
+    log "Creating $GNUPGHOME"
     mkdir -p "$GNUPGHOME"
     chmod 700 "$GNUPGHOME"
 fi
 
-# Configure gpg-agent
-debug "Configuring gpg-agent"
-if [[ "$(uname)" != "Darwin" ]]; then
+# Configure gpg-agent based on OS
+log "Configuring gpg-agent"
+if [[ "$(uname)" == "Darwin" ]]; then
     cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
-pinentry-program $(command -v pinentry-curses)
 enable-ssh-support
 EOF
 else
     cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
+pinentry-program $(command -v pinentry-curses)
 enable-ssh-support
 EOF
 fi
 
 # Restart gpg-agent
-debug "Restarting gpg-agent"
+log "Restarting gpg-agent"
 gpgconf --kill gpg-agent
 gpg-agent --daemon
 gpg-connect-agent updatestartuptty /bye || error "Failed to start gpg-agent"
@@ -89,34 +92,34 @@ gpg-connect-agent updatestartuptty /bye || error "Failed to start gpg-agent"
 # Handle private key
 if [[ -z "$PRIVATE_KEY" ]]; then
     if [[ $NONINTERACTIVE -eq 0 ]]; then
-        debug "Opening vim to input private key"
+        log "Opening vim to input private key"
         vim "$PRIVATE_KEY_TMP"
     else
         error "Private key required in non-interactive mode"
     fi
 else
-    debug "Using provided private key"
+    log "Using provided private key"
     cp "$PRIVATE_KEY" "$PRIVATE_KEY_TMP"
 fi
 
 [[ ! -f "$PRIVATE_KEY_TMP" ]] && error "Private key file not found"
 
 # Import private key
-debug "Importing private key"
+log "Importing private key"
 gpg --import "$PRIVATE_KEY_TMP" || error "Failed to import private key"
 
 # Configure SSH authentication
-debug "Setting up SSH authentication"
-KEY_GRIP=$(gpg --with-keygrip --list-secret-keys | grep -A1 "\[A\]" | grep Keygrip | awk '{print $3}')
+log "Setting up SSH authentication"
+KEY_GRIP=$(gpg --with-keygrip --list-secret-keys | grep -A1 "\[AR\]" | grep Keygrip | awk '{print $3}')
 [[ -z "$KEY_GRIP" ]] && error "No authentication key found"
 echo "$KEY_GRIP" > "$GNUPGHOME/sshcontrol"
 
 # Verify SSH setup
-debug "Verifying SSH setup"
+log "Verifying SSH setup"
 ssh-add -l || error "SSH key not properly added"
 
 # Clone and unlock repository
-debug "Cloning and unlocking repository"
+log "Cloning and unlocking repository"
 if [[ ! -d "$REPO_DIR" ]]; then
     git clone "$REPO_URL" "$REPO_DIR" || error "Failed to clone repository"
 fi
