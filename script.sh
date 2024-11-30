@@ -72,22 +72,18 @@ fi
 
 # Configure gpg-agent based on OS
 log "Configuring gpg-agent"
-# if [[ "$(uname)" == "Darwin" ]]; then
-#     cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
-# enable-ssh-support
-# EOF
-# else
-    cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
-pinentry-program $(command -v pinentry-curses)
+cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
 enable-ssh-support
+grab
+pinentry-program $(command -v pinentry)
+allow-preset-passphrase
 EOF
-# fi
 
 # Restart gpg-agent
 log "Restarting gpg-agent"
 gpgconf --kill gpg-agent
 gpgconf --launch gpg-agent
-# gpg-connect-agent updatestartuptty /bye || error "Failed to start gpg-agent"
+gpg-connect-agent updatestartuptty /bye || error "Failed to start gpg-agent"
 
 # Handle private key
 if [[ -z "$PRIVATE_KEY" ]]; then

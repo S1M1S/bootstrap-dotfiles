@@ -16,12 +16,8 @@
           git-crypt
           gnupg
           vim
+          pinentry-curses
         ];
-
-        platformDeps = if pkgs.stdenv.isDarwin
-          then [ pkgs.pinentry-curses ]
-          else [ pkgs.pinentry-curses ];
-
       in {
         packages.default = pkgs.stdenv.mkDerivation {
           name = "bootstrap-dotfiles";
@@ -35,12 +31,12 @@
             chmod +x $out/bin/bootstrap-dotfiles
 
             wrapProgram $out/bin/bootstrap-dotfiles \
-              --prefix PATH : ${pkgs.lib.makeBinPath (commonDeps ++ platformDeps)}
+              --prefix PATH : ${pkgs.lib.makeBinPath (commonDeps)}
           '';
         };
 
         devShell = pkgs.mkShell {
-          buildInputs = commonDeps ++ platformDeps;
+          buildInputs = commonDeps;
           shellHook = ''
             export GPG_TTY=$(tty)
             export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
