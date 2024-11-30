@@ -74,9 +74,7 @@ fi
 log "Configuring gpg-agent"
 cat > "$GNUPGHOME/gpg-agent.conf" <<EOF
 enable-ssh-support
-grab
-pinentry-program $(command -v pinentry)
-allow-preset-passphrase
+pinentry-program $(command -v pinentry-curses)
 EOF
 
 # Restart gpg-agent
