@@ -12,6 +12,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         commonDeps = with pkgs; [
+          openssh
           git
           git-crypt
           gnupg
